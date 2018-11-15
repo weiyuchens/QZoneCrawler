@@ -1,9 +1,15 @@
 # -*- coding: utf-8 -*-
 
+#  author   :    chenweiyu
+#  time     :    2018.08.01
+#  version  :    1.0
+#  e-mail   :    weiyuchens@sina.com
+
 from selenium import webdriver
 import time
 import re
 import requests
+import json
 
 
 # 获取g_tk的计算方法
@@ -46,14 +52,14 @@ def getReqURL(qq_count, param, g_tk, qzonetoken):
 
 
 def main():
-    # 账号密码
+    # QQ账号和密码
     qq_count = ''
     qq_pw = ''
 
     # 模拟登陆
     driver = webdriver.Firefox()
-    # driver.set_window_position(20, 40)
-    # driver.set_window_size(1100, 700)
+    driver.set_window_position(20, 40)
+    driver.set_window_size(1100, 700)
 
     driver.get('https://qzone.qq.com')
 
@@ -84,24 +90,51 @@ def main():
     reqURL = getReqURL(qq_count, param, g_tk, qzonetoken)
     print(reqURL)
 
-    req = requests.session()
-    headers = {}
+    cookie = ""
+
+    for elem in driver.get_cookies():
+        cookie += elem["name"] + "=" + elem["value"] + ";"
+
+    print(cookie)
+
+    headers = {'host': 'user.qzone.qq.com',
+               'accept': '*/*',
+               'accept-encoding': 'gzip, deflate, br',
+               'accept-language': 'zh-CN,zh;q=0.9',
+               'referer': 'https://user.qzone.qq.com/726344827/main',
+               'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3396.99 Safari/537.36'}
+
+    headers['cookie'] = cookie
+
+    print(headers)
+
+    page = requests.session().get(reqURL, headers=headers)
+
+    pagedata = page.text.encode('utf-8')
+    # print(pagedata)
+
+    pagestr1 = pagedata[10:]
+    pagestr = pagestr1[0:-2]
+
+    pagejson = json.loads(pagestr)
+
+    list = pagejson["data"]["module_3"]["data"]["items"]
+
+    dataList = []
+
+    print("爬下来的数据：")
+
+    for i in list:
+        print("qq:" + str(i['uin']) + "  name:" + i['name'] + "  img:" + i['img'])
+        uin = str(i['uin'])
+        name = i['name']
+        img = i['img']
+        dataList.append([uin, name, img])
+
+    print("存储后的数据：")
+
+    for n in dataList:
+        print("qq:" + n.__getitem__(0) + "  name:" + n.__getitem__(1) + "  img:" + n.__getitem__(2))
 
 
-def getMethod():
-
-    url = 'https://user.qzone.qq.com/proxy/domain/r.qzone.qq.com/cgi-bin/main_page_cgi?uin=726344827&param=3_726344827_0%7C8_8_726344827_1_1_0_1_1%7C16&g_tk=2059051196&qzonetoken=46fb3ee25c3fde95b8a93ee2d450e21e92bb589803d3ae1b9991032e526e2230b392bea1aab8&g_tk=2059051196'
-
-    headers ={'host' :'user.qzone.qq.com',
-              'accept' : '*/*',
-              'accept-encoding' : 'gzip, deflate, br',
-              'accept-language': 'zh-CN,zh;q=0.9',
-              'cookie':'pgv_pvi=3497795584;RK=6NpIz0QgZy;ptcz=e27dcb585adc4ef88a74f88ea7eef2703a126b7734f9d8b6b717d7b7cd328d24;qz_screen=1920x1080;pgv_pvid=3786048277;QZ_FE_WEBP_SUPPORT=1; cpu_performance_v8=0; __Q_w_s__QZN_TodoMsgCnt=1; zzpaneluin=; zzpanelkey=;pgv_si=s8697273344;_qpsvr_localtk=0.9498334307209215;pt2gguin=o0726344827; uin=o0726344827; skey=@otp6wSogK; ptisp=ctc; p_uin=o0726344827; pt4_token=-ENXaOPhK4QA9d9rNwXR8P950hGmFNoh4mVliM*KE4g_;p_skey=iQnjVRX3MLwgx9au0CpoBJmZ4Kp31hiWkpIZ*Rz2p8g_; Loading=Yes; pgv_info=ssid=s5722514815',
-              'referer': 'https://user.qzone.qq.com/726344827/main',
-              'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3396.99 Safari/537.36'}
-
-    page = requests.session().get(url,headers=headers)
-    print(page.text)
-
-# main()
-getMethod()
+main()
